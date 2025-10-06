@@ -46,14 +46,22 @@ function exportJSON() {
     ROOM: typeof ROOM !== 'undefined' ? ROOM : [],
     HISTORY: typeof HISTORY !== 'undefined' ? HISTORY : []
   };
-  const json = JSON.stringify(data, null, 2);
-  const blob = new Blob([json], {type: "application/json"});
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'plan.json';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  try {
+    const json = safeStringify(data, 2);
+    const blob = new Blob([json], {type: "application/json"});
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.download = 'plan.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    // revoke after a short delay to ensure the download has started
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  } catch (err) {
+    console.error('Export JSON failed:', err);
+    alert('Failed to export JSON: ' + (err && err.message ? err.message : err));
+  }
 }
 
 // Compute a comprehensive project summary for report/PDF
@@ -404,8 +412,22 @@ function generatePDF(summary) {
   }
 }
 
-// Event listeners for UI buttons
-window.addEventListener('DOMContentLoaded', function() {
+// Safe JSON stringify to avoid circular references and functions
+function safeStringify(obj, space) {
+  const seen = new WeakSet();
+  return JSON.stringify(obj, function(key, value) {
+    if (typeof value === 'function') return undefined;
+    // DOM nodes
+    if (value && typeof value === 'object' && value.nodeType) return undefined;
+    if (value && typeof value === 'object') {
+      if (seen.has(value)) return undefined;
+      seen.add(value);
+    }
+    return value;
+  }, space);
+}
+
+function initExporterUI() {
   const btnExportSVG = document.getElementById('exportSVG');
   const btnExportPNG = document.getElementById('exportPNG');
   const btnExportJSON = document.getElementById('exportJSON');
@@ -425,4 +447,8 @@ window.addEventListener('DOMContentLoaded', function() {
     });
   }
   if (btnGeneratePDF) btnGeneratePDF.addEventListener('click', function() { generatePDF(); });
-});
+}
+
+// Try to initialize immediately; if DOM not ready, also listen for DOMContentLoaded
+try { initExporterUI(); } catch (e) { /* ignore */ }
+window.addEventListener && window.addEventListener('DOMContentLoaded', initExporterUI);
