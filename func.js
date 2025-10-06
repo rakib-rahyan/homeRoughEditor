@@ -607,6 +607,36 @@ document.getElementById('report_mode').addEventListener("click", function () {
     // The user can explicitly click the "Generate PDF" button when ready.
 });
 
+// Back button from report panel: restore main panel and ensure controls visible
+var reportBack = document.getElementById('reportBackBtn');
+if (reportBack) {
+    reportBack.addEventListener('click', function () {
+        try {
+            // Hide report panel, show main left panel
+            $('#reportTools').hide(300, function() {
+                $('#panel').show(300);
+            });
+            // Set mode back to select
+            mode = 'select_mode';
+            fonc_button('select_mode');
+
+            // Reset panel scroll and slider if present
+            var panelScroll = document.querySelector('#panel .panel-scroll');
+            if (panelScroll) panelScroll.scrollTop = 0;
+            var slider = document.getElementById('panelScrollSlider');
+            if (slider) slider.value = 0;
+
+            // Ensure panel is visible (some code used show(200) but inline handlers were removed)
+            $('#panel').show(300);
+        } catch (e) {
+            console.warn('Failed to restore panel after report back:', e);
+            // Fallback: directly toggle visibility
+            try { document.getElementById('reportTools').style.display = 'none'; } catch (ee) {}
+            try { document.getElementById('panel').style.display = 'block'; } catch (ee) {}
+        }
+    });
+}
+
 document.getElementById('wallWidth').addEventListener("input", function () {
     let sliderValue = this.value;
     binder.wall.thick = sliderValue;
