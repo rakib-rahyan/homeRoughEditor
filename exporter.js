@@ -244,23 +244,163 @@ function importJSONFile(file) {
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
-      const data = JSON.parse(e.target.result);
-      if (data.WALLS && data.OBJDATA && data.ROOM) {
-        // Restore state
-        WALLS = data.WALLS;
-        OBJDATA = data.OBJDATA;
-        ROOM = data.ROOM;
-        HISTORY = data.HISTORY || [];
-        if (typeof editor !== 'undefined' && editor.architect) {
-          editor.architect(WALLS);
+      let data = JSON.parse(e.target.result);
+      // Support nested shapes like { plan: { WALLS:..., OBJDATA:..., ROOM:... } }
+      if (data && data.plan) data = data.plan;
+
+      // Support lowercase or alternative keys
+      let walls = data.WALLS || data.walls || data.Wall || data.wall;
+      let objdata = data.OBJDATA || data.objdata || data.OBJ || data.objects;
+      let room = data.ROOM || data.room || data.ROOMS || data.rooms;
+      let history = data.HISTORY || data.history;
+
+      // Heuristic fallback: try to detect arrays by shape if keys missing
+      const isArrayOf = (arr, predicate) => Array.isArray(arr) && arr.length && arr.every(predicate);
+      const looksLikeWall = (w) => w && (('start' in w && 'end' in w) || ('x1' in w && 'y1' in w && 'x2' in w && 'y2' in w) || ('p1' in w && 'p2' in w));
+      const looksLikeObj = (o) => o && (o.class || o.type || o.name || o.id);
+      const looksLikeRoom = (r) => r && (('area' in r) || ('name' in r) || ('surface' in r));
+
+      // If none of the expected keys are arrays, scan top-level arrays to guess
+      if (!Array.isArray(walls) || !Array.isArray(objdata) || !Array.isArray(room)) {
+        for (const k in data) {
+          if (!Array.isArray(data[k])) continue;
+          const arr = data[k];
+          if (!walls && isArrayOf(arr, looksLikeWall)) { walls = arr; continue; }
+          if (!objdata && isArrayOf(arr, looksLikeObj)) { objdata = arr; continue; }
+          if (!room && isArrayOf(arr, looksLikeRoom)) { room = arr; continue; }
         }
-        if (typeof rib === 'function') rib();
-        if (typeof save === 'function') save();
-        if (typeof load === 'function') load(HISTORY.length-1);
-        alert('Plan imported successfully!');
-      } else {
-        alert('Invalid plan file.');
       }
+
+      // Final defaults
+      walls = Array.isArray(walls) ? walls : [];
+      objdata = Array.isArray(objdata) ? objdata : [];
+      room = Array.isArray(room) ? room : [];
+      history = Array.isArray(history) ? history : [];
+
+      // Basic validation after heuristics
+      if (!walls.length && !objdata.length && !room.length) {
+        console.warn('Imported JSON could not be mapped to WALLS/OBJDATA/ROOM:', Object.keys(data));
+        alert('Invalid plan file: could not detect walls/objects/rooms in the JSON.');
+        return;
+      }
+
+      // If HISTORY looks like an array of snapshot strings (saved by this app), prefer to restore via load()
+      if (Array.isArray(history) && history.length > 0 && typeof history[0] === 'string' && history[0].indexOf('wallData') !== -1) {
+        try {
+          // store imported history into localStorage then call load to replay last snapshot
+          localStorage.setItem('history', JSON.stringify(history));
+          HISTORY = history;
+          HISTORY.index = HISTORY.length - 1;
+          if (typeof load === 'function') {
+            try { load(HISTORY.index); } catch (ie) { console.warn('load() failed after importing HISTORY:', ie); }
+          }
+          alert('Plan imported successfully (from HISTORY snapshot).');
+          return;
+        } catch (ie) {
+          console.warn('Failed to restore from imported HISTORY array:', ie);
+        }
+      }
+
+      // Clear existing objects from the UI
+      try {
+        for (let k in OBJDATA) {
+          try { if (OBJDATA[k] && OBJDATA[k].graph) OBJDATA[k].graph.remove(); } catch (e) {}
+        }
+      } catch (e) {}
+
+      // Reconstruct OBJDATA as live editor.obj2D instances where possible
+      const reconstructedObjects = [];
+      if (typeof editor !== 'undefined' && typeof editor.obj2D === 'function') {
+        for (let k in objdata) {
+          try {
+            const OO = objdata[k] || {};
+            const obj = new editor.obj2D(OO.family, OO.class, OO.type, {
+              x: OO.x,
+              y: OO.y
+            }, OO.angle, OO.angleSign, OO.size, OO.hinge || 'normal', OO.thick, OO.value);
+            obj.limit = OO.limit;
+            reconstructedObjects.push(obj);
+          } catch (ie) {
+            console.warn('Failed to reconstruct object', objdata[k], ie);
+          }
+        }
+      } else {
+        // Fallback: keep raw data
+        for (let k in objdata) reconstructedObjects.push(objdata[k]);
+      }
+
+      // Restore state for walls/rooms/history
+      WALLS = walls;
+      ROOM = room;
+      HISTORY = history;
+
+      // Rebuild UI / editor
+      if (typeof editor !== 'undefined' && typeof editor.architect === 'function') {
+        try {
+          // Normalize wall coordinates to expected shape {start:{x,y}, end:{x,y}, thick, type}
+          const normalizePoint = (p) => {
+            if (!p) return { x: 0, y: 0 };
+            if (Array.isArray(p) && p.length >= 2) return { x: Number(p[0]) || 0, y: Number(p[1]) || 0 };
+            if (typeof p === 'object') {
+              const x = ('x' in p) ? p.x : (('X' in p) ? p.X : (p[0] || 0));
+              const y = ('y' in p) ? p.y : (('Y' in p) ? p.Y : (p[1] || 0));
+              return { x: Number(x) || 0, y: Number(y) || 0 };
+            }
+            // fallback parse string like "100,200"
+            if (typeof p === 'string' && p.indexOf(',') !== -1) {
+              const parts = p.split(',');
+              return { x: Number(parts[0]) || 0, y: Number(parts[1]) || 0 };
+            }
+            return { x: 0, y: 0 };
+          };
+
+          const normalizeWall = (w) => {
+            const nw = {};
+            nw.start = normalizePoint(w.start || w.p1 || w.from || w.a || (w.coords && w.coords[0]) || w[0]);
+            nw.end = normalizePoint(w.end || w.p2 || w.to || w.b || (w.coords && w.coords[1]) || w[1]);
+            nw.thick = Number(w.thick || w.width || w.th || 20) || 20;
+            nw.type = w.type || w.t || 'normal';
+            nw.parent = null;
+            nw.child = null;
+            nw.backUp = w.backUp || false;
+            return nw;
+          };
+
+          WALLS = WALLS.map(normalizeWall);
+          // Ensure ROOM entries have numeric area
+          ROOM = ROOM.map(r => ({ ...r, area: Number(r.area) || Number(r.surface) || 0 }));
+
+          editor.architect(WALLS);
+        } catch (ie) { console.warn('editor.architect failed:', ie); }
+      }
+      if (typeof rib === 'function') {
+        try { rib(); } catch (ie) { console.warn('rib() failed after import:', ie); }
+      }
+
+      // Only call load if we have a valid HISTORY array with entries
+      if (typeof load === 'function' && Array.isArray(HISTORY) && HISTORY.length > 0) {
+        try { load(HISTORY.length - 1); } catch (ie) { console.warn('load() failed after import:', ie); }
+      }
+
+      // Attach reconstructed objects to the UI (append graphs and update them)
+      try {
+        OBJDATA = [];
+        // Clear carpentry/text boxes
+        try { $('#boxcarpentry').empty(); } catch (e) {}
+        try { $('#boxText').empty(); } catch (e) {}
+        for (let i = 0; i < reconstructedObjects.length; i++) {
+          const obj = reconstructedObjects[i];
+          OBJDATA.push(obj);
+          try { $('#boxcarpentry').append(OBJDATA[OBJDATA.length - 1].graph); } catch (e) {}
+          try { OBJDATA[OBJDATA.length - 1].update(); } catch (e) {}
+        }
+      } catch (e) { console.warn('Failed to attach reconstructed objects:', e); }
+
+      if (typeof save === 'function') {
+        try { save(); } catch (ie) { console.warn('save() failed after import:', ie); }
+      }
+
+      alert('Plan imported successfully!');
     } catch (err) {
       alert('Error importing plan: ' + err.message);
     }
