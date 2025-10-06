@@ -603,15 +603,8 @@ document.getElementById('report_mode').addEventListener("click", function () {
 
     document.getElementById('reportRooms').innerHTML = reportRoom;
     $('#reportRooms').show(1000);
-    // After building the on-screen report, also compute summary and generate PDF
-    try {
-        if (typeof calculateProjectSummary === 'function' && typeof generatePDF === 'function') {
-            const summary = calculateProjectSummary();
-            generatePDF(summary);
-        }
-    } catch (e) {
-        console.warn('Auto PDF generation skipped:', e);
-    }
+    // After building the on-screen report, do not auto-generate a PDF.
+    // The user can explicitly click the "Generate PDF" button when ready.
 });
 
 document.getElementById('wallWidth').addEventListener("input", function () {

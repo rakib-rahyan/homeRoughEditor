@@ -424,5 +424,5 @@ window.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
-  if (btnGeneratePDF) btnGeneratePDF.addEventListener('click', generatePDF);
+  if (btnGeneratePDF) btnGeneratePDF.addEventListener('click', function() { generatePDF(); });
 });
