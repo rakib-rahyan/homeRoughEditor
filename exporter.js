@@ -568,6 +568,11 @@ function safeStringify(obj, space) {
 }
 
 function initExporterUI() {
+  // guard against being initialized more than once (scripts may run at end of body
+  // and DOMContentLoaded listener may also call this). Without this, listeners
+  // are attached twice which can make the import flow run two times.
+  if (window.__hre_exporterUIInitialized) return;
+  window.__hre_exporterUIInitialized = true;
   const btnExportSVG = document.getElementById('exportSVG');
   const btnExportPNG = document.getElementById('exportPNG');
   const btnExportJSON = document.getElementById('exportJSON');
@@ -579,12 +584,21 @@ function initExporterUI() {
   if (btnExportPNG) btnExportPNG.addEventListener('click', exportPNG);
   if (btnExportJSON) btnExportJSON.addEventListener('click', exportJSON);
   if (btnImportJSON && fileImportJSON) {
-    btnImportJSON.addEventListener('click', function() { fileImportJSON.click(); });
-    fileImportJSON.addEventListener('change', function(e) {
-      if (e.target.files && e.target.files[0]) {
-        importJSONFile(e.target.files[0]);
-      }
-    });
+    // ensure the click opener always resets the input so selecting the same file again
+    // will fire the change event
+    btnImportJSON.addEventListener('click', function() { try { fileImportJSON.value = ''; } catch (e) {} fileImportJSON.click(); });
+
+    // attach the change handler only once even if initExporterUI is called twice
+    if (!fileImportJSON.__hreChangeHandlerAdded) {
+      fileImportJSON.addEventListener('change', function(e) {
+        if (e.target.files && e.target.files[0]) {
+          importJSONFile(e.target.files[0]);
+          // clear value so selecting same file later will still fire change
+          try { e.target.value = ''; } catch (err) {}
+        }
+      });
+      fileImportJSON.__hreChangeHandlerAdded = true;
+    }
   }
   if (btnGeneratePDF) btnGeneratePDF.addEventListener('click', function() { generatePDF(); });
 }
