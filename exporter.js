@@ -432,7 +432,7 @@ function generatePDF(summary) {
     };
 
     doc.setFontSize(18);
-    addLine('Home Rough Editor Report');
+    addLine('rakib');
     doc.setFontSize(12);
     addLine('Date: ' + new Date().toLocaleDateString());
 

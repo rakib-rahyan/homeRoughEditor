@@ -684,4 +684,48 @@
   })();
 </script>
 
+<script>
+  (function(){
+    // Buttons that represent exclusive modes (only one selected at a time)
+    var modeButtons = ['select_mode','line_mode','partition_mode','room_mode','node_mode','distance_mode','text_mode','door_mode','window_mode','object_mode','layer_mode'];
+    function clearModeSelection(){
+      modeButtons.forEach(function(id){
+        var el = document.getElementById(id);
+        if (el) el.classList.remove('btn-selected');
+      });
+    }
+
+    modeButtons.forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.classList.add('mode'); // mark as mode
+      el.addEventListener('click', function(){
+        clearModeSelection();
+        el.classList.add('btn-selected');
+      });
+    });
+
+    // For action buttons in the panel, give short-lived feedback
+    var actionButtons = document.querySelectorAll('#panel .btn-action, #panel .btn:not(.mode)');
+    actionButtons.forEach(function(b){
+      b.addEventListener('click', function(){
+        // toggle visual pressed state for non-toggle actions
+        if (b.classList.contains('btn-selected')) {
+          b.classList.remove('btn-selected');
+        } else {
+          b.classList.add('btn-selected');
+          // remove after a short delay so user sees the feedback
+          setTimeout(function(){ b.classList.remove('btn-selected'); }, 600);
+        }
+      });
+    });
+
+    // on load, mark the current mode button if any
+    setTimeout(function(){
+      var cur = document.getElementById(mode);
+      if (cur) { clearModeSelection(); cur.classList.add('btn-selected'); }
+    }, 100);
+  })();
+</script>
+
 </html>

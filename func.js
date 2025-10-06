@@ -1635,26 +1635,37 @@ document.addEventListener("fullscreenchange", function () {
 
 function raz_button() {
     $('#rect_mode').removeClass('btn-success');
+    $('#rect_mode').removeClass('btn-selected');
     $('#rect_mode').addClass('btn-default');
     $('#select_mode').removeClass('btn-success');
+    $('#select_mode').removeClass('btn-selected');
     $('#select_mode').addClass('btn-default');
     $('#line_mode').removeClass('btn-success');
+    $('#line_mode').removeClass('btn-selected');
     $('#line_mode').addClass('btn-default');
     $('#partition_mode').removeClass('btn-success');
+    $('#partition_mode').removeClass('btn-selected');
     $('#partition_mode').addClass('btn-default');
     $('#door_mode').removeClass('btn-success');
+    $('#door_mode').removeClass('btn-selected');
     $('#door_mode').addClass('btn-default');
     $('#node_mode').removeClass('btn-success');
+    $('#node_mode').removeClass('btn-selected');
     $('#node_mode').addClass('btn-default');
     $('#text_mode').removeClass('btn-success');
+    $('#text_mode').removeClass('btn-selected');
     $('#text_mode').addClass('btn-default');
     $('#room_mode').removeClass('btn-success');
+    $('#room_mode').removeClass('btn-selected');
     $('#room_mode').addClass('btn-default');
     $('#distance_mode').removeClass('btn-success');
+    $('#distance_mode').removeClass('btn-selected');
     $('#distance_mode').addClass('btn-default');
     $('#object_mode').removeClass('btn-success');
+    $('#object_mode').removeClass('btn-selected');
     $('#object_mode').addClass('btn-default');
     $('#stair_mode').removeClass('btn-success');
+    $('#stair_mode').removeClass('btn-selected');
     $('#stair_mode').addClass('btn-default');
 }
 
@@ -1666,6 +1677,8 @@ function fonc_button(modesetting, option) {
     if (option != 'simpleStair') {
         $('#' + modesetting).removeClass('btn-default');
         $('#' + modesetting).addClass('btn-success');
+        // keep visual parity with .btn-selected used by the theme script
+        $('#' + modesetting).addClass('btn-selected');
 
     }
     mode = modesetting;

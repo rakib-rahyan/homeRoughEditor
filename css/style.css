@@ -63,7 +63,7 @@
     .panel-slider input[type="range"] {
       appearance: none;
       -webkit-appearance: none;
-      writing-mode: bt-lr; /* vertical */
+      /* writing-mode removed because bt-lr is non-standard; rotation handles vertical display */
       width: 100%;
       height: calc(100% - 16px);
       transform: rotate(270deg); /* rotate to vertical orientation */
@@ -98,7 +98,7 @@
       left:210px;
       padding:5px;
       color:#333;
-      font-size:1.5em
+      font-size:1.5em;
     }
     header{display:none;font-size:11px}
     
@@ -107,9 +107,8 @@
             display: none;
         }
         header {display:block}
-        #boxScale {display:none;}
-        #boxbind {display:none;}
-        #boxScale {display:none;}
+  #boxScale {display:none;}
+  #boxbind {display:none;}
         #moveBox {display:none;}
         #zoomBox {display:none;}
         #boxinfo {display:none;}
@@ -427,4 +426,28 @@
   .btn-success-soft:hover { background:#dcf4e4; color:#146c2e; }
   .btn-secondary-soft { background:#eef1f5; border:1px solid #e2e6ea; color:#495057; }
   .btn-secondary-soft:hover { background:#e7ebf0; color:#343a40; }
+  /* Selected / active state for panel buttons */
+  .btn-selected {
+    background: linear-gradient(180deg, #e6f0ff, #cfe1ff) !important;
+    border-color: #a7c4ff !important;
+    color: #07316a !important;
+    box-shadow: 0 4px 12px rgba(16, 78, 138, 0.15);
+    transform: translateY(-1px);
+  }
+  /* a subtle icon accent when selected */
+  .btn-selected .fa { color: #07407a; opacity: 1; }
+
+  /* allow group selection look for mode buttons */
+  .panel-card .btn.mode { border-radius: 10px; }
+
+  /* Override Bootstrap green for panel-local success buttons so existing
+     JS that toggles `btn-success` will use the blue selected style inside the left panel. */
+  #panel .btn.btn-success {
+    background: linear-gradient(180deg, #e6f0ff, #cfe1ff) !important;
+    border-color: #a7c4ff !important;
+    color: #07316a !important;
+    box-shadow: 0 4px 12px rgba(16, 78, 138, 0.15) !important;
+    transform: translateY(-1px);
+  }
+  #panel .btn.btn-success .fa { color: #07407a !important; }
     
