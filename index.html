@@ -12,12 +12,28 @@
     integrity="sha512-xh6O/CkQoPOWDdYTDqeRdPCVd1SpvCA9XXcUnZS2FmJNp1coAFzvtCN9BmamE+4aHK8yyUHUSCcJHgXloTyT2A=="
     crossorigin="anonymous" referrerpolicy="no-referrer" />
   <!-- <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet"> -->
+</head>
   <link rel="stylesheet" href="css/style.css">
+
+  <!-- jsPDF for PDF generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
 </head>
 
 <body style="background:#f2eee5;margin:0;padding:0; ">
 
+
   <header>Make by Home Rough Editor Ver.0.95</header>
+
+  <!-- Export/Import/PDF Controls -->
+  <div id="exportImportBar" style="position:absolute;top:10px;left:10px;z-index:10000;background:#fff;padding:10px;border-radius:8px;box-shadow:0 2px 8px #ccc;">
+    <button class="btn btn-sm btn-primary" id="exportSVG">Export SVG</button>
+    <button class="btn btn-sm btn-primary" id="exportPNG">Export PNG</button>
+    <button class="btn btn-sm btn-primary" id="exportJSON">Export JSON</button>
+    <button class="btn btn-sm btn-secondary" id="importJSON">Import JSON</button>
+    <input type="file" id="importJSONFile" accept="application/json" style="display:none" />
+    <button class="btn btn-sm btn-success" id="generatePDF">Generate PDF</button>
+  </div>
 
   <svg id="lin" viewBox="0 0 1100 700" preserveAspectRatio="xMidYMin slice" xmlns="http://www.w3.org/2000/svg"
     style="z-index:2;margin:0;padding:0;width:100vw;height:100vh;position:absolute;top:0;left:0;right:0;bottom:0">
@@ -613,10 +629,13 @@
   integrity="sha256-w8CvhFs7iHNVUtnSP0YKEg00p9Ih13rlL9zGqvLdePA=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.min.js"
   integrity="sha384-IDwe1+LCz02ROU9k972gdyvl+AESN10+x7tBKgc9I5HFtuNz0wWnPclzo6p9vxnk" crossorigin="anonymous"></script>
+
 <script src="mousewheel.js"></script>
 <script src="func.js"></script>
 <script src="qSVG.js"></script>
 <script src="editor.js"></script>
+
 <script src="engine.js"></script>
+<script src="exporter.js"></script>
 
 </html>
