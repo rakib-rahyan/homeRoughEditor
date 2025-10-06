@@ -88,6 +88,7 @@
     }
     body {font-family: 'Roboto', sans-serif;overflow:hidden}
     input[type=range] {
+      appearance: none;
       -webkit-appearance: none;
       margin: 18px 0;
       width: 100%;
@@ -99,7 +100,7 @@
       width: 100%;
       height: 8.4px;
       cursor: pointer;
-      animate: 0.2s;
+      transition: 0.2s;
       background: #3071a9;
       border-radius: 1.3px;
       border: 0.2px solid #010101;
@@ -121,7 +122,7 @@
       width: 100%;
       height: 8.4px;
       cursor: pointer;
-      animate: 0.2s;
+      transition: 0.2s;
       background: #3071a9;
       border-radius: 1.3px;
       border: 0.2px solid #010101;
@@ -141,7 +142,7 @@
       width: 100%;
       height: 8.4px;
       cursor: pointer;
-      animate: 0.2s;
+      transition: 0.2s;
       background: transparent;
       border-color: transparent;
       border-width: 16px 0;
@@ -219,9 +220,9 @@
     
     .area {
       display:block;
-      color:'#34e0be';
-      fontSize:'12.5px';
-      fontWeight:'normal';
+      color:#34e0be;
+      font-size:12.5px;
+      font-weight:normal;
     }
     
     .funkyradio div {
@@ -338,6 +339,11 @@
     .halfy {width:47%}
     .btn:hover {background:#08d;}
       .ovv {transition:all 0.1s;}
+    
+    /* Panel button refinements */
+    #panel .btn { border-radius:8px; font-weight:600; }
+    #panel .btn i.fa { opacity: 0.9; }
+    #panel .btn.btn-light.shadow { background:#ffffff; color:#2b2b2b; }
     .circle_css {fill:#5cba79;fill-opacity:0.9;transition:all 0.4s}
     .circle_css_2 {stroke:#5cba79;stroke-width:0;fill:#5cba79;fill-opacity:0.9;animation: myAnim 0.6s linear infinite;}
     @keyframes myAnim{
@@ -363,4 +369,18 @@
     #ex1Slider .slider-selection {
     background: #bec7cd;
     }
+    
+  /* Panel UI beautification */
+  .panel-section { margin-bottom: 12px; }
+  .panel-title { font-size: 0.95rem; font-weight: 600; color: #4b79aa; margin: 6px 0 8px; }
+  .panel-card { background:#fff; border:1px solid #e6e6e6; border-radius:8px; padding:10px; box-shadow:0 2px 6px rgba(0,0,0,.08); }
+  .btn-block { width:100%; }
+  .btn-action { display:flex; align-items:center; justify-content:center; gap:8px; }
+  .btn-action .fa { font-size: 0.95rem; }
+  .btn-soft { background:#f9fbfd; border:1px solid #e4eaf1; color:#0d6efd; }
+  .btn-soft:hover { background:#eef5ff; color:#0b5ed7; }
+  .btn-success-soft { background:#eaf8ee; border:1px solid #c8efcf; color:#1e7e34; }
+  .btn-success-soft:hover { background:#dcf4e4; color:#146c2e; }
+  .btn-secondary-soft { background:#eef1f5; border:1px solid #e2e6ea; color:#495057; }
+  .btn-secondary-soft:hover { background:#e7ebf0; color:#343a40; }
     

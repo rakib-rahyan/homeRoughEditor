@@ -25,15 +25,7 @@
 
   <header>Make by Home Rough Editor Ver.0.95</header>
 
-  <!-- Export/Import/PDF Controls -->
-  <div id="exportImportBar" style="position:absolute;top:10px;left:10px;z-index:10000;background:#fff;padding:10px;border-radius:8px;box-shadow:0 2px 8px #ccc;">
-    <button class="btn btn-sm btn-primary" id="exportSVG">Export SVG</button>
-    <button class="btn btn-sm btn-primary" id="exportPNG">Export PNG</button>
-    <button class="btn btn-sm btn-primary" id="exportJSON">Export JSON</button>
-    <button class="btn btn-sm btn-secondary" id="importJSON">Import JSON</button>
-    <input type="file" id="importJSONFile" accept="application/json" style="display:none" />
-    <button class="btn btn-sm btn-success" id="generatePDF">Generate PDF</button>
-  </div>
+  <!-- Export/Import/PDF Controls moved into left panel -->
 
   <svg id="lin" viewBox="0 0 1100 700" preserveAspectRatio="xMidYMin slice" xmlns="http://www.w3.org/2000/svg"
     style="z-index:2;margin:0;padding:0;width:100vw;height:100vh;position:absolute;top:0;left:0;right:0;bottom:0">
@@ -484,6 +476,19 @@
           </div>
         </div>
       </div>
+
+      <!-- File & Report Actions -->
+      <li>
+        <div id="exportImportPanel" class="panel-card panel-section">
+          <div class="panel-title">File & Report</div>
+          <button class="btn btn-soft btn-sm btn-block btn-action" id="exportSVG"><i class="fa fa-file-code-o" aria-hidden="true"></i> Export SVG</button>
+          <button class="btn btn-soft btn-sm btn-block btn-action" id="exportPNG"><i class="fa fa-file-image-o" aria-hidden="true"></i> Export PNG</button>
+          <button class="btn btn-soft btn-sm btn-block btn-action" id="exportJSON"><i class="fa fa-file-text-o" aria-hidden="true"></i> Export JSON</button>
+          <button class="btn btn-secondary-soft btn-sm btn-block btn-action" id="importJSON"><i class="fa fa-upload" aria-hidden="true"></i> Import JSON</button>
+          <input type="file" id="importJSONFile" accept="application/json" style="display:none" />
+          <button class="btn btn-success-soft btn-sm btn-block btn-action" id="generatePDF"><i class="fa fa-file-pdf-o" aria-hidden="true"></i> Generate PDF</button>
+        </div>
+      </li>
 
       <li><button class="btn btn-light shadow halfy " id="report_mode" title="Show report"><i class="fa fa-calculator"
             aria-hidden="true"></i>
