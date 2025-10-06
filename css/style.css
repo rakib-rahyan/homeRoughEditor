@@ -40,6 +40,50 @@
       font-size:0.9em;
     }
     
+    /* Scrollable panel wrapper for left controls */
+    .panel-scroll {
+      max-height: calc(100vh - 60px); /* leave room for header/slider */
+      overflow-y: auto;
+      padding-right: 8px; /* space for slider */
+    }
+    
+    /* Vertical slider container */
+    .panel-slider {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      bottom: 8px;
+      width: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none; /* allow clicks to pass to slider only */
+    }
+    
+    .panel-slider input[type="range"] {
+      appearance: none;
+      -webkit-appearance: none;
+      writing-mode: bt-lr; /* vertical */
+      width: 100%;
+      height: calc(100% - 16px);
+      transform: rotate(270deg); /* rotate to vertical orientation */
+      pointer-events: auto;
+    }
+    
+    .panel-slider input[type="range"]::-webkit-slider-runnable-track {
+      background: #e6e6e6;
+      height: 6px;
+      border-radius: 3px;
+    }
+    .panel-slider input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      background: #6c757d;
+      border-radius: 50%;
+      box-shadow: 0 0 2px rgba(0,0,0,0.3);
+    }
+    
     #panel {
       display: block;
       left:-200px;

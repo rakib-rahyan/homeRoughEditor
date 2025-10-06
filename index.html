@@ -344,12 +344,11 @@
     <input type="hidden" id="roomIndex" value="" />
     <button type="button" class="btn btn-primary" id="applySurface">Apply</button>
     <button type="button" class="btn btn-danger" id="resetRoomTools">Cancel</button>
-
-    <br />
   </div>
 
   <div id="panel" class="leftBox">
-    <ul class="list-unstyled">
+    <div class="panel-scroll">
+      <ul class="list-unstyled">
       <li><button class="btn disabled halfy " id="undo" title="undo"><i class="fa fa-chevron-circle-left"
             aria-hidden="true"></i>
           <button class="btn disabled halfy pull-right" id="redo" title="redo"><i class="fa fa-chevron-circle-right"
@@ -502,7 +501,8 @@
       <li>
 
         <div style="clear:both"></div>
-    </ul>
+      </ul>
+    </div> 
   </div>
 
   <div class="modal fade " id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
@@ -642,5 +642,49 @@
 
 <script src="engine.js"></script>
 <script src="exporter.js"></script>
+
+<script>
+  (function(){
+    var slider = document.getElementById('panelScrollSlider');
+    var panel = document.querySelector('#panel .panel-scroll');
+
+    if (!slider || !panel) return;
+
+    function getMaxScroll() {
+      return Math.max(0, panel.scrollHeight - panel.clientHeight);
+    }
+
+    function updateSliderFromScroll() {
+      var max = getMaxScroll();
+      var value = 0;
+      if (max > 0) value = Math.round((panel.scrollTop / max) * 100);
+      slider.value = value;
+      // hide slider if no overflow
+      slider.style.display = (max > 0) ? '' : 'none';
+    }
+
+    function updateScrollFromSlider() {
+      var max = getMaxScroll();
+      var val = parseInt(slider.value, 10) || 0;
+      panel.scrollTop = Math.round((val / 100) * max);
+    }
+
+    // events
+    slider.addEventListener('input', function(){
+      updateScrollFromSlider();
+    });
+
+    panel.addEventListener('scroll', function(){
+      updateSliderFromScroll();
+    });
+
+    window.addEventListener('resize', function(){
+      updateSliderFromScroll();
+    });
+
+    // initialize
+    setTimeout(updateSliderFromScroll, 50);
+  })();
+</script>
 
 </html>
