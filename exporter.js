@@ -56,6 +56,86 @@ function exportJSON() {
   document.body.removeChild(link);
 }
 
+// Compute a comprehensive project summary for report/PDF
+function calculateProjectSummary() {
+  const safe = (v, d=0) => (typeof v === 'number' && isFinite(v)) ? v : d;
+  const rooms = Array.isArray(ROOM) ? ROOM : [];
+  const walls = Array.isArray(WALLS) ? WALLS : [];
+  const objs = Array.isArray(OBJDATA) ? OBJDATA : [];
+
+  // Total area in m^2
+  const totalArea = rooms.reduce((sum, r) => sum + safe(r.area, 0), 0) / 3600;
+
+  // Wall total length (m)
+  let totalWallLength = 0;
+  try {
+    for (let i = 0; i < walls.length; i++) {
+      const w = walls[i];
+      if (w && w.start && w.end && typeof qSVG !== 'undefined') {
+        totalWallLength += qSVG.measure(w.start, w.end) / (typeof meter !== 'undefined' ? meter : 60);
+      }
+    }
+  } catch (_) {}
+
+  // Doors/Windows detection from doorWindow class and type
+  const isDoorType = t => ['simple','double','pocket','aperture'].includes(t);
+  const isWindowType = t => ['fix','flap','twin','bay'].includes(t);
+  const doors = objs.filter(o => o && o.class === 'doorWindow' && isDoorType(o.type));
+  const windows = objs.filter(o => o && o.class === 'doorWindow' && isWindowType(o.type));
+
+  // Energy counts
+  const energies = objs.filter(o => o && o.class === 'energy');
+  const energyCounts = {
+    switches: energies.filter(o => ['switch','doubleSwitch','dimmer'].includes(o.type)).length,
+    outlets: energies.filter(o => ['plug','plug20','plug32'].includes(o.type)).length,
+    lights: energies.filter(o => ['wallLight','roofLight'].includes(o.type)).length,
+  };
+
+  // Per room energy distribution
+  const roomEnergy = [];
+  for (let k = 0; k < rooms.length; k++) {
+    const room = rooms[k];
+    let switchNumber = 0, plugNumber = 0, plug20 = 0, plug32 = 0, lampNumber = 0;
+    for (let i = 0; i < energies.length; i++) {
+      const e = energies[i];
+      try {
+        if (typeof editor !== 'undefined' && typeof editor.rayCastingRoom === 'function') {
+          const target = editor.rayCastingRoom(e);
+          if (target && isObjectsEquals && isObjectsEquals(room, target)) {
+            if (['switch','doubleSwitch','dimmer'].includes(e.type)) switchNumber++;
+            if (['plug','plug20','plug32'].includes(e.type)) {
+              plugNumber++;
+              if (e.type === 'plug20') plug20++;
+              if (e.type === 'plug32') plug32++;
+            }
+            if (['wallLight','roofLight'].includes(e.type)) lampNumber++;
+          }
+        }
+      } catch (_) {}
+    }
+    roomEnergy.push({
+      name: room.name || `Room ${k+1}`,
+      switch: switchNumber,
+      plug: plugNumber,
+      plug20,
+      plug32,
+      light: lampNumber,
+    });
+  }
+
+  return {
+    totalArea: safe(totalArea, 0),
+    roomCount: rooms.length,
+    wallCount: walls.length,
+    totalWallLength: safe(totalWallLength, 0),
+    doors: { total: doors.length },
+    windows: { total: windows.length },
+    energy: energyCounts,
+    rooms: rooms.map(r => ({ name: r.name || '', area: safe(r.area, 0) / 3600 })),
+    roomEnergy,
+  };
+}
+
 // Import JSON
 function importJSONFile(file) {
   const reader = new FileReader();
@@ -85,51 +165,93 @@ function importJSONFile(file) {
   reader.readAsText(file);
 }
 
-// Generate PDF (jsPDF)
-function generatePDF() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF('l', 'pt', 'a4');
-  doc.setFontSize(18);
-  doc.text('Home Rough Editor Report', 40, 40);
-  doc.setFontSize(12);
-  doc.text('Date: ' + new Date().toLocaleDateString(), 40, 60);
-
-  // Export SVG as PNG for embedding
-  const svg = document.getElementById('lin');
-  const serializer = new XMLSerializer();
-  const svgString = serializer.serializeToString(svg);
-  const canvas = document.createElement('canvas');
-  canvas.width = 800; canvas.height = 600;
-  const ctx = canvas.getContext('2d');
-  const img = new window.Image();
-  img.onload = function() {
-    ctx.drawImage(img, 0, 0, 800, 600);
-    const pngData = canvas.toDataURL('image/png');
-    doc.addImage(pngData, 'PNG', 40, 80, 500, 350);
-
-    // Add room details, wall/door/window counts, total area, etc.
-    let y = 450;
-    doc.text('Room Details:', 40, y);
-    y += 20;
-    if (typeof ROOM !== 'undefined' && ROOM.length > 0) {
-      ROOM.forEach((room, i) => {
-        doc.text(`${i+1}. ${room.name || 'Room'} - Area: ${room.area ? (room.area/3600).toFixed(2) : '?'} m²`, 60, y);
-        y += 16;
-      });
+// Generate PDF (jsPDF) - accepts optional precomputed summary
+function generatePDF(summary) {
+  try {
+    const { jsPDF } = window.jspdf || {};
+    if (!jsPDF) {
+      alert('PDF library not loaded.');
+      return;
     }
-    y += 10;
-    doc.text(`Walls: ${typeof WALLS !== 'undefined' ? WALLS.length : 0}` , 40, y);
-    const doorCount = typeof OBJDATA !== 'undefined' ? OBJDATA.filter(o => o.class === 'door').length : 0;
-    const windowCount = typeof OBJDATA !== 'undefined' ? OBJDATA.filter(o => o.class === 'window').length : 0;
-    doc.text(`Doors: ${doorCount}`, 200, y);
-    doc.text(`Windows: ${windowCount}`, 300, y);
-    y += 20;
-    const totalArea = (typeof ROOM !== 'undefined') ? ROOM.reduce((sum, r) => sum + (r.area||0), 0)/3600 : 0;
-    doc.text(`Total Area: ${totalArea.toFixed(2)} m²`, 40, y);
-    // Add more metadata if available
-    doc.save('plan_report.pdf');
-  };
-  img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+    // Compute summary if not provided
+    let data = summary;
+    if (!data && typeof calculateProjectSummary === 'function') {
+      data = calculateProjectSummary();
+    }
+    const doc = new jsPDF('l', 'pt', 'a4');
+    const page = { w: doc.internal.pageSize.getWidth(), h: doc.internal.pageSize.getHeight() };
+    const margin = { l: 40, t: 40, r: 40, b: 40 };
+    let cursorY = margin.t;
+    const addLine = (text) => {
+      if (cursorY > page.h - margin.b) { doc.addPage(); cursorY = margin.t; }
+      doc.text(String(text), margin.l, cursorY);
+      cursorY += 16;
+    };
+
+    doc.setFontSize(18);
+    addLine('Home Rough Editor Report');
+    doc.setFontSize(12);
+    addLine('Date: ' + new Date().toLocaleDateString());
+
+    // Export SVG as PNG for embedding
+    const svg = document.getElementById('lin');
+    const serializer = new XMLSerializer();
+    const svgString = serializer.serializeToString(svg);
+    const canvas = document.createElement('canvas');
+    canvas.width = 1200; canvas.height = 800;
+    const ctx = canvas.getContext('2d');
+    const img = new window.Image();
+    img.onload = function() {
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const pngData = canvas.toDataURL('image/png');
+      // Maintain aspect ratio within page
+      const maxW = page.w - margin.l - margin.r;
+      const maxH = 350;
+      const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
+      const drawW = canvas.width * ratio;
+      const drawH = canvas.height * ratio;
+      doc.addImage(pngData, 'PNG', margin.l, cursorY + 10, drawW, drawH);
+      cursorY += drawH + 30;
+
+      // Summary block
+      if (data) {
+        doc.setFont(undefined, 'bold');
+        addLine('Summary');
+        doc.setFont(undefined, 'normal');
+        addLine(`Total area: ${data.totalArea.toFixed(2)} m\u00b2`);
+        addLine(`Rooms: ${data.roomCount}`);
+        addLine(`Walls: ${data.wallCount} (total length: ${data.totalWallLength.toFixed(2)} m)`);
+        addLine(`Doors: ${data.doors.total} | Windows: ${data.windows.total}`);
+        addLine(`Energy points - Switches: ${data.energy.switches}, Outlets: ${data.energy.outlets}, Lights: ${data.energy.lights}`);
+      }
+
+      // Rooms table
+      if (data && data.rooms && data.rooms.length) {
+        doc.setFont(undefined, 'bold');
+        addLine('Rooms');
+        doc.setFont(undefined, 'normal');
+        data.rooms.forEach((r, idx) => {
+          addLine(`${idx + 1}. ${r.name || 'Room'} — ${r.area.toFixed(2)} m\u00b2`);
+        });
+      }
+
+      // Energy per room (if any)
+      if (data && data.roomEnergy && data.roomEnergy.length) {
+        doc.setFont(undefined, 'bold');
+        addLine('Energy distribution per room');
+        doc.setFont(undefined, 'normal');
+        data.roomEnergy.forEach((e) => {
+          addLine(`${e.name || 'Room'} — Swi: ${e.switch} | Outlets: ${e.plug} (20A:${e.plug20}, 32A:${e.plug32}) | Lights: ${e.light}`);
+        });
+      }
+
+      doc.save('plan_report.pdf');
+    };
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+  } catch (err) {
+    console.error('PDF generation failed:', err);
+    alert('Failed to generate PDF: ' + err.message);
+  }
 }
 
 // Event listeners for UI buttons

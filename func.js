@@ -361,7 +361,7 @@ document.getElementById('report_mode').addEventListener("click", function () {
     $('#reportNumberSurface').show(1000);
     let number = 1;
     let reportRoom = '<div class="row">\n';
-    for (let k in ROOM) {
+        for (let k = 0; k < ROOM.length; k++) {
         let nameRoom = "Room n°" + number + " <small>(sans nom)</small>";
         if (ROOM[k].name != "") nameRoom = ROOM[k].name;
         reportRoom += '<div class="col-md-6"><p>' + nameRoom + '</p></div>\n';
@@ -603,9 +603,15 @@ document.getElementById('report_mode').addEventListener("click", function () {
 
     document.getElementById('reportRooms').innerHTML = reportRoom;
     $('#reportRooms').show(1000);
-
-
-
+    // After building the on-screen report, also compute summary and generate PDF
+    try {
+        if (typeof calculateProjectSummary === 'function' && typeof generatePDF === 'function') {
+            const summary = calculateProjectSummary();
+            generatePDF(summary);
+        }
+    } catch (e) {
+        console.warn('Auto PDF generation skipped:', e);
+    }
 });
 
 document.getElementById('wallWidth').addEventListener("input", function () {
@@ -630,7 +636,7 @@ document.getElementById("bboxTrash").addEventListener("click", function () {
     $('#panel').show(200);
     fonc_button('select_mode');
     $('#boxinfo').html('Deleted object');
-    delete binder;
+    binder = undefined;
     rib();
 });
 
@@ -745,7 +751,7 @@ $('#textToLayer').on('hidden.bs.modal', function (e) {
         binder.graph.remove();
         $('#boxText').append(OBJDATA[OBJDATA.length - 1].graph);
         OBJDATA[OBJDATA.length - 1].update();
-        delete binder;
+    binder = undefined;
         $('#boxinfo').html('Added text');
         save();
     } else {
@@ -874,7 +880,7 @@ document.getElementById("applySurface").addEventListener("click", function () {
     $('#roomTools').hide(100);
     $('#panel').show(200);
     binder.remove();
-    delete binder;
+    binder = undefined;
     let id = $('#roomIndex').val();
     //COLOR
     let data = $('#roomBackground').val();
@@ -911,7 +917,7 @@ document.getElementById("resetRoomTools").addEventListener("click", function () 
     $('#roomTools').hide(100);
     $('#panel').show(200);
     binder.remove();
-    delete binder;
+    binder = undefined;
     $('#boxinfo').html('Updated room');
     fonc_button('select_mode');
 
@@ -970,7 +976,7 @@ for (let k = 0; k < objTrashBtn.length; k++) {
         $('#boxinfo').html('Selection mode');
         $('#panel').show('200');
         binder.graph.remove();
-        delete binder;
+    binder = undefined;
         rib();
         $('#panel').show('300');
     });
@@ -1130,7 +1136,7 @@ minMoveGrid = function (mouse) {
 function intersectionOff() {
     if (typeof (lineIntersectionP) != 'undefined') {
         lineIntersectionP.remove();
-        delete lineIntersectionP;
+    lineIntersectionP = undefined;
     }
 }
 
@@ -1143,7 +1149,7 @@ function intersection(snap, range = Infinity, except = ['']) {
 
     if (typeof (lineIntersectionP) != 'undefined') {
         lineIntersectionP.remove();
-        delete lineIntersectionP;
+    lineIntersectionP = undefined;
     }
 
     lineIntersectionP = qSVG.create("boxbind", "path", { // ORANGE TEMP LINE FOR ANGLE 0 90 45 -+
@@ -1644,7 +1650,7 @@ function fonc_button(modesetting, option) {
 
     if (typeof (lineIntersectionP) != 'undefined') {
         lineIntersectionP.remove();
-        delete lineIntersectionP;
+    lineIntersectionP = undefined;
     }
 }
 
@@ -1665,7 +1671,7 @@ $('#select_mode').click(function () {
     $('#boxinfo').html('Mode "select"');
     if (typeof (binder) != 'undefined') {
         binder.remove();
-        delete binder;
+    binder = undefined;
     }
 
     fonc_button('select_mode');

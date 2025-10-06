@@ -11,12 +11,12 @@ document.querySelector('#panel').addEventListener('mousemove', function (event) 
     action = 0;
     if (typeof (binder) != 'undefined') {
       binder.remove();
-      delete binder;
+  binder = undefined;
     }
     $('#linetemp').remove();
     $('#line_construc').remove();
     lengthTemp.remove();
-    delete lengthTemp;
+  lengthTemp = undefined;
   }
 });
 
@@ -215,7 +215,7 @@ function _MOUSEMOVE(event) {
     if (roomTarget = editor.rayCastingRoom(snap)) {
       if (typeof (binder) != 'undefined') {
         binder.remove();
-        delete binder;
+  binder = undefined;
       }
 
       var pathSurface = roomTarget.coords;
@@ -250,7 +250,7 @@ function _MOUSEMOVE(event) {
     else {
       if (typeof (binder) != 'undefined') {
         binder.remove();
-        delete binder;
+  binder = undefined;
       }
     }
   }
@@ -324,7 +324,7 @@ function _MOUSEMOVE(event) {
     else {
       if (typeof (binder) != 'undefined') {
         binder.graph.remove();
-        delete binder;
+  binder = undefined;
       }
     }
   } // END DOOR MODE
@@ -375,11 +375,11 @@ function _MOUSEMOVE(event) {
         }
         else {
           binder.remove();
-          delete binder;
+          binder = undefined;
         }
       } else {
         binder.remove();
-        delete binder;
+  binder = undefined;
       }
     }
   } // END NODE MODE
@@ -403,7 +403,7 @@ function _MOUSEMOVE(event) {
     if (objTarget !== false) {
       if (typeof (binder) != 'undefined' && (binder.type == 'segment')) {
         binder.graph.remove();
-        delete binder;
+  binder = undefined;
         cursor('default');
       }
       if (objTarget.params.bindBox) { // OBJ -> BOUNDINGBOX TOOL
@@ -452,7 +452,7 @@ function _MOUSEMOVE(event) {
       if (typeof (binder) != 'undefined') {
         if (typeof (binder.graph) != 'undefined') binder.graph.remove();
         if (binder.type == 'node') binder.remove();
-        delete binder;
+  binder = undefined;
         cursor('default');
         rib();
 
@@ -484,7 +484,7 @@ function _MOUSEMOVE(event) {
     } else {
       if (typeof (binder) != "undefined" && binder.type == 'node') {
         binder.remove();
-        delete binder;
+  binder = undefined;
         hideAllSize();
         cursor('default');
         rib();
@@ -560,7 +560,7 @@ function _MOUSEMOVE(event) {
       else {
         if (typeof (binder) != "undefined" && binder.type == 'segment') {
           binder.graph.remove();
-          delete binder;
+          binder = undefined;
           hideAllSize();
           cursor('default');
           rib();
@@ -604,7 +604,7 @@ function _MOUSEMOVE(event) {
       if (typeof (binder) != "undefined") {
         if (binder.graph) binder.graph.remove();
         else binder.remove();
-        delete binder;
+  binder = undefined;
       }
     }
   }
@@ -710,7 +710,7 @@ function _MOUSEMOVE(event) {
         } else {
           if (typeof (binder) != "undefined") {
             binder.remove();
-            delete binder;
+            binder = undefined;
           }
           if (wallEndConstruc === false) cursor('crosshair');
         }
@@ -865,7 +865,7 @@ function _MOUSEMOVE(event) {
         }
         else {
           objTarget.graph.remove();
-          delete objTarget;
+          objTarget = undefined;
           OBJDATA.splice(wall.indexObj, 1);
           wallListObj.splice(k, 1);
         }
@@ -999,7 +999,7 @@ function _MOUSEMOVE(event) {
           var limits = limitObj(eq, objTarget.size, objTarget);
           if (!qSVG.btwn(limits[0].x, WALLS[k].start.x, WALLS[k].end.x) || !qSVG.btwn(limits[0].y, WALLS[k].start.y, WALLS[k].end.y) || !qSVG.btwn(limits[1].x, WALLS[k].start.x, WALLS[k].end.x) || !qSVG.btwn(limits[1].y, WALLS[k].start.y, WALLS[k].end.y)) {
             objTarget.graph.remove();
-            delete objTarget;
+            objTarget = undefined;
             var indexObj = OBJDATA.indexOf(objTarget);
             OBJDATA.splice(indexObj, 1);
           }
@@ -1393,7 +1393,7 @@ function _MOUSEUP(event) {
   if (mode == 'select_mode') {
     if (typeof (binder) != 'undefined') {
       binder.remove();
-      delete binder;
+  binder = undefined;
       save();
     }
   }
@@ -1421,7 +1421,7 @@ function _MOUSEUP(event) {
     if (OBJDATA[OBJDATA.length - 1].class == 'energy') targetBox = 'boxEnergy';
     if (OBJDATA[OBJDATA.length - 1].class == 'furniture') targetBox = 'boxFurniture';
     $('#' + targetBox).append(OBJDATA[OBJDATA.length - 1].graph);
-    delete binder;
+  binder = undefined;
     $('#boxinfo').html('Object added');
     fonc_button('select_mode');
     save();
@@ -1448,10 +1448,10 @@ function _MOUSEUP(event) {
       OBJDATA.push(binder);
       binder.graph.remove();
       $('#boxcarpentry').append(OBJDATA[OBJDATA.length - 1].graph);
-      delete binder;
-      delete labelMeasure;
+  binder = undefined;
+  labelMeasure = undefined;
       cross.remove();
-      delete cross;
+  cross = undefined;
       $('#boxinfo').html('Measure added');
       fonc_button('select_mode');
       save();
@@ -1506,7 +1506,7 @@ function _MOUSEUP(event) {
       WALLS.push(newWall);
       binder.data.wall.end = { x: binder.data.x, y: binder.data.y };
       binder.remove();
-      delete binder;
+  binder = undefined;
       editor.architect(WALLS);
       save();
     }
@@ -1526,7 +1526,7 @@ function _MOUSEUP(event) {
     OBJDATA.push(binder);
     binder.graph.remove();
     $('#boxcarpentry').append(OBJDATA[OBJDATA.length - 1].graph);
-    delete binder;
+  binder = undefined;
     $('#boxinfo').html('Element added');
     fonc_button('select_mode');
     save();
@@ -1558,10 +1558,10 @@ function _MOUSEUP(event) {
         { x: pox, y: poy }, { x: x, y: y }) / 60).toFixed(2) + ' m</span>');
       $('#line_construc').remove(); // DEL LINE CONSTRUC HELP TO VIEW NEW SEG PATH
       lengthTemp.remove();
-      delete lengthTemp;
+  lengthTemp = undefined;
       construc = 0;
       if (wallEndConstruc) action = 0;
-      delete wallEndConstruc;
+  wallEndConstruc = undefined;
       pox = x;
       poy = y;
       save();
@@ -1573,7 +1573,7 @@ function _MOUSEUP(event) {
       fonc_button('select_mode');
       if (typeof (binder) != 'undefined') {
         binder.remove();
-        delete binder;
+  binder = undefined;
       }
       snap = calcul_snap(event, grid_snap);
       pox = snap.x;
@@ -1630,10 +1630,10 @@ function _MOUSEUP(event) {
           document.getElementById("wallWidthVal").textContent = binder.wall.thick;
           mode = 'edit_wall_mode';
         }
-        delete equation1;
-        delete equation2;
-        delete equation3;
-        delete intersectionFollowers;
+  equation1 = undefined;
+  equation2 = undefined;
+  equation3 = undefined;
+  intersectionFollowers = undefined;
       }
 
       if (binder.type == 'obj') {
@@ -1656,7 +1656,7 @@ function _MOUSEUP(event) {
           mode = "select_mode";
           action = 0;
           binder.graph.remove();
-          delete binder;
+          binder = undefined;
         }
       }
 
@@ -1703,13 +1703,13 @@ function _MOUSEUP(event) {
           mode = "select_mode";
           action = 0;
           binder.graph.remove();
-          delete binder;
+          binder = undefined;
         }
       }
 
       if (mode == 'bind_mode') {
         binder.remove();
-        delete binder;
+  binder = undefined;
       }
     } // END BIND IS DEFINED
     save();
