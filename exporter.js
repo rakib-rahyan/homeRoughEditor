@@ -91,11 +91,26 @@ function calculateProjectSummary() {
     lights: energies.filter(o => ['wallLight','roofLight'].includes(o.type)).length,
   };
 
-  // Per room energy distribution
+  // Helper to normalize room name labels to categories used by rules
+  const normalizeRoom = (name) => {
+    if (!name) return '';
+    const n = String(name).toLowerCase();
+    if (n.startsWith('bedroom')) return 'bedroom';
+    if (n.includes('lounge') || n.includes('living')) return 'lounge';
+    if (n.includes('lunchroom') || n.includes('dining')) return 'dining';
+    if (n.includes('kitchen')) return 'kitchen';
+    if (n.includes('bath')) return 'bathroom';
+    if (n.includes('toilet') || n.includes('wc')) return 'toilet';
+    if (n.includes('hall') || n.includes('corridor')) return 'corridor';
+    return n; // fallback to raw label
+  };
+
+  // Per room energy distribution (+ wattMax)
   const roomEnergy = [];
   for (let k = 0; k < rooms.length; k++) {
     const room = rooms[k];
-    let switchNumber = 0, plugNumber = 0, plug20 = 0, plug32 = 0, lampNumber = 0;
+    let switchNumber = 0, plugNumber = 0, plug20 = 0, plug32 = 0, lampNumber = 0, wattMax = 0;
+    let plugBaselineAdded = false; // For first 'plug' type = 3520W once
     for (let i = 0; i < energies.length; i++) {
       const e = energies[i];
       try {
@@ -105,10 +120,13 @@ function calculateProjectSummary() {
             if (['switch','doubleSwitch','dimmer'].includes(e.type)) switchNumber++;
             if (['plug','plug20','plug32'].includes(e.type)) {
               plugNumber++;
-              if (e.type === 'plug20') plug20++;
-              if (e.type === 'plug32') plug32++;
+              if (e.type === 'plug') {
+                if (!plugBaselineAdded) { wattMax += 3520; plugBaselineAdded = true; }
+              }
+              if (e.type === 'plug20') { plug20++; wattMax += 4400; }
+              if (e.type === 'plug32') { plug32++; wattMax += 7040; }
             }
-            if (['wallLight','roofLight'].includes(e.type)) lampNumber++;
+            if (['wallLight','roofLight'].includes(e.type)) { lampNumber++; wattMax += 100; }
           }
         }
       } catch (_) {}
@@ -120,8 +138,83 @@ function calculateProjectSummary() {
       plug20,
       plug32,
       light: lampNumber,
+      wattMax,
+      normName: normalizeRoom(room.name || '')
     });
   }
+
+  // Compliance checks similar to UI logic (adapted to English labels)
+  const complianceIssues = [];
+  const findEnergyForRoom = (roomName) => roomEnergy.find(r => r.name === roomName) || null;
+  // For lounge + dining: combine stats
+  const loungeIdxs = roomEnergy
+    .map((r, idx) => ({r, idx}))
+    .filter(x => x.r.normName === 'lounge')
+    .map(x => x.idx);
+  const diningIdxs = roomEnergy
+    .map((r, idx) => ({r, idx}))
+    .filter(x => x.r.normName === 'dining')
+    .map(x => x.idx);
+  // Create a copy structure for aggregated checks
+  const perRoomForCheck = roomEnergy.map(r => ({...r}));
+  if (loungeIdxs.length && diningIdxs.length) {
+    // add dining stats to each lounge for check parity (closest to original logic)
+    const diningAgg = diningIdxs.reduce((acc, idx) => ({
+      light: acc.light + perRoomForCheck[idx].light,
+      plug: acc.plug + perRoomForCheck[idx].plug,
+      switch: acc.switch + perRoomForCheck[idx].switch,
+    }), {light:0, plug:0, switch:0});
+    loungeIdxs.forEach(idx => {
+      perRoomForCheck[idx].light += diningAgg.light;
+      perRoomForCheck[idx].plug += diningAgg.plug;
+      perRoomForCheck[idx].switch += diningAgg.switch;
+    });
+  }
+  // Build issues list
+  perRoomForCheck.forEach((r) => {
+    const issues = [];
+    if (!r.name) issues.push('Room has no label');
+    switch (r.normName) {
+      case 'lounge':
+        if (r.light === 0) issues.push('At least 1 controlled light point required');
+        if (r.plug < 5) issues.push('At least 5 power outlets required');
+        break;
+      case 'bedroom':
+        if (r.light === 0) issues.push('At least 1 controlled light point required');
+        if (r.plug < 3) issues.push('At least 3 power outlets required');
+        break;
+      case 'bathroom':
+        if (r.light === 0) issues.push('At least 1 light point required');
+        if (r.plug < 2) issues.push('At least 2 power outlets required');
+        if (r.switch === 0) issues.push('At least 1 switch required');
+        break;
+      case 'corridor':
+        if (r.light === 0) issues.push('At least 1 controlled light point required');
+        if (r.plug < 1) issues.push('At least 1 power outlet required');
+        break;
+      case 'toilet':
+        if (r.light === 0) issues.push('At least 1 light point required');
+        break;
+      case 'kitchen':
+        if (r.light === 0) issues.push('At least 1 controlled light point required');
+        if (r.plug < 6) issues.push('At least 6 power outlets required');
+        if (r.plug32 === 0) issues.push('At least one 32A power outlet required');
+        if (r.plug20 < 2) issues.push('At least two 20A power outlets required');
+        break;
+      default:
+        // no standard constraints known
+        break;
+    }
+    if (issues.length) complianceIssues.push({ room: r.name || 'Room', issues });
+  });
+
+  // Data gaps
+  const gaps = { roomsWithoutName: [], roomsWithoutUserSurface: [], emptyProject: false };
+  if (!rooms.length && !walls.length && !objs.length) gaps.emptyProject = true;
+  rooms.forEach((r, i) => {
+    if (!r.name) gaps.roomsWithoutName.push(`Room ${i+1}`);
+    if (!r.surface) gaps.roomsWithoutUserSurface.push(r.name || `Room ${i+1}`);
+  });
 
   return {
     totalArea: safe(totalArea, 0),
@@ -131,8 +224,10 @@ function calculateProjectSummary() {
     doors: { total: doors.length },
     windows: { total: windows.length },
     energy: energyCounts,
-    rooms: rooms.map(r => ({ name: r.name || '', area: safe(r.area, 0) / 3600 })),
+    rooms: rooms.map(r => ({ name: r.name || '', area: safe(r.area, 0) / 3600, userSurface: r.surface || '', action: r.action || '', showSurface: !!r.showSurface })),
     roomEnergy,
+    complianceIssues,
+    gaps,
   };
 }
 
@@ -193,7 +288,7 @@ function generatePDF(summary) {
     doc.setFontSize(12);
     addLine('Date: ' + new Date().toLocaleDateString());
 
-    // Export SVG as PNG for embedding
+  // Export SVG as PNG for embedding
     const svg = document.getElementById('lin');
     const serializer = new XMLSerializer();
     const svgString = serializer.serializeToString(svg);
@@ -222,27 +317,82 @@ function generatePDF(summary) {
         addLine(`Rooms: ${data.roomCount}`);
         addLine(`Walls: ${data.wallCount} (total length: ${data.totalWallLength.toFixed(2)} m)`);
         addLine(`Doors: ${data.doors.total} | Windows: ${data.windows.total}`);
-        addLine(`Energy points - Switches: ${data.energy.switches}, Outlets: ${data.energy.outlets}, Lights: ${data.energy.lights}`);
+        addLine(`Energy points — Switches: ${data.energy.switches}, Outlets: ${data.energy.outlets}, Lights: ${data.energy.lights}`);
       }
 
-      // Rooms table
+      // Rooms table with columns
       if (data && data.rooms && data.rooms.length) {
         doc.setFont(undefined, 'bold');
         addLine('Rooms');
         doc.setFont(undefined, 'normal');
+        // Table header
+        const xCols = { name: margin.l, area: margin.l + 250, user: margin.l + 360, action: margin.l + 470, show: margin.l + 540 };
+        doc.text('Name', xCols.name, cursorY);
+        doc.text('Area (m²)', xCols.area, cursorY);
+        doc.text('User Surface', xCols.user, cursorY);
+        doc.text('Action', xCols.action, cursorY);
+        doc.text('Show', xCols.show, cursorY);
+        cursorY += 14;
         data.rooms.forEach((r, idx) => {
-          addLine(`${idx + 1}. ${r.name || 'Room'} — ${r.area.toFixed(2)} m\u00b2`);
+          addLine(`${idx + 1}. ${r.name || 'Room'}`);
+          // Align columns by drawing text at specific x positions on same row
+          const yRow = cursorY - 16; // row just added by addLine
+          doc.text(r.area.toFixed(2), xCols.area, yRow);
+          doc.text(r.userSurface ? String(r.userSurface) : '-', xCols.user, yRow);
+          doc.text(r.action || '-', xCols.action, yRow);
+          doc.text(r.showSurface ? 'Yes' : 'No', xCols.show, yRow);
         });
       }
 
-      // Energy per room (if any)
+      // Energy per room (table)
       if (data && data.roomEnergy && data.roomEnergy.length) {
         doc.setFont(undefined, 'bold');
         addLine('Energy distribution per room');
         doc.setFont(undefined, 'normal');
+        const xColsE = { name: margin.l, swi: margin.l + 250, out: margin.l + 320, a20: margin.l + 400, a32: margin.l + 460, lig: margin.l + 520, watt: margin.l + 580 };
+        doc.text('Name', xColsE.name, cursorY);
+        doc.text('Swi', xColsE.swi, cursorY);
+        doc.text('Out', xColsE.out, cursorY);
+        doc.text('20A', xColsE.a20, cursorY);
+        doc.text('32A', xColsE.a32, cursorY);
+        doc.text('Lig', xColsE.lig, cursorY);
+        doc.text('WattMax', xColsE.watt, cursorY);
+        cursorY += 14;
         data.roomEnergy.forEach((e) => {
-          addLine(`${e.name || 'Room'} — Swi: ${e.switch} | Outlets: ${e.plug} (20A:${e.plug20}, 32A:${e.plug32}) | Lights: ${e.light}`);
+          addLine(`${e.name || 'Room'}`);
+          const yRow = cursorY - 16;
+          doc.text(String(e.switch), xColsE.swi, yRow);
+          doc.text(String(e.plug), xColsE.out, yRow);
+          doc.text(String(e.plug20), xColsE.a20, yRow);
+          doc.text(String(e.plug32), xColsE.a32, yRow);
+          doc.text(String(e.light), xColsE.lig, yRow);
+          doc.text(String(e.wattMax), xColsE.watt, yRow);
         });
+      }
+
+      // Compliance issues
+      if (data && data.complianceIssues && data.complianceIssues.length) {
+        doc.setFont(undefined, 'bold');
+        addLine('Standard checks (NF C 15-100 inspired)');
+        doc.setFont(undefined, 'normal');
+        data.complianceIssues.forEach(ci => {
+          addLine(`${ci.room}:`);
+          ci.issues.forEach(msg => addLine(` - ${msg}`));
+        });
+      }
+
+      // Data gaps section
+      if (data && data.gaps) {
+        doc.setFont(undefined, 'bold');
+        addLine('Data completeness and gaps');
+        doc.setFont(undefined, 'normal');
+        if (data.gaps.emptyProject) addLine('No rooms, walls, or objects found.');
+        if (data.gaps.roomsWithoutName && data.gaps.roomsWithoutName.length) {
+          addLine('Rooms without a name: ' + data.gaps.roomsWithoutName.join(', '));
+        }
+        if (data.gaps.roomsWithoutUserSurface && data.gaps.roomsWithoutUserSurface.length) {
+          addLine('Rooms without user-provided surface: ' + data.gaps.roomsWithoutUserSurface.join(', '));
+        }
       }
 
       doc.save('plan_report.pdf');
